@@ -1,0 +1,12 @@
+numpy
+pillow
+scipy
+scikit-image
+matplotlib
+
+# pandas 必須 pin：安裝 cellpose 會把 numpy 升到 2.x，
+# pandas 2.2.1 與 numpy 2.x 不相容（本專案已踩過這個雷）
+pandas>=2.2.3
+
+# 選用，只有 --backend cellpose 才需要
+# cellpose>=4.2

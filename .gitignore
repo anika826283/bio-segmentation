@@ -1,0 +1,15 @@
+# 顯微影像原始資料（約 296 MB，不進版控）
+EOC3/
+HMC3 activated marker IF GMy88 R INOX/
+test/
+*.JPG
+*.jpg
+*.ORF
+*.tif
+*.tiff
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
