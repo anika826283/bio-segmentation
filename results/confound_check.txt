@@ -1,0 +1,48 @@
+=== 1. do the two exposure levels separate cyto_mean? ===
+  0.625s (n=5): [0.7424, 0.7777, 0.86, 0.8792, 0.889]
+  0.769s (n=7): [0.6348, 0.6369, 0.6452, 0.6969, 0.7007, 0.7064, 0.7308]
+  min(0.625s group) = 0.7424
+  max(0.769s group) = 0.7308
+  -> PERFECTLY SEPARATED
+
+=== 2. but is that separation just 1/exposure? ===
+  measured cyto_mean ratio      = 1.2222
+  pure exposure ratio           = 1.2308
+  residual beyond exposure      = 0.9930   <- 1.00 means NO extra signal
+  raw 8-bit mean, 0.625s group  = 168.96
+  raw 8-bit mean, 0.769s group  = 166.66
+  -> auto-exposure equalised the 8-bit brightness to within 1.4%
+
+=== 3. cell density confound ===
+  nuclei/field, 0.625s group = 127.6
+  nuclei/field, 0.769s group = 99.3
+  density ratio              = 1.2852
+  exposure-implied brightness ratio = 1.2308
+  -> a denser field is a brighter field, so auto-exposure shortens the
+     exposure, which inflates every per-cell value in that field.
+  corr(n_nuclei, cyto_mean) over all 12 fields = +0.591
+  corr within 0.625s group (exposure held constant) = +0.043  (n=5)
+  corr within 0.769s group (exposure held constant) = +0.206  (n=7)
+
+=== 4. acquisition timeline ===
+  17:11:22  PB154766  exp=0.7692s  n=125
+  17:11:43  PB154769  exp=0.6250s  n=129
+  17:23:33  PB154796  exp=0.7692s  n= 63   <-- 11.8 min gap
+  17:25:00  PB154799  exp=0.6250s  n=127
+  17:26:59  PB154802  exp=0.6250s  n=135
+  17:27:27  PB154805  exp=0.7692s  n=110
+  17:28:31  PB154808  exp=0.6250s  n=147
+  17:29:22  PB154811  exp=0.7692s  n=105
+  17:30:17  PB154814  exp=0.7692s  n= 98
+  17:30:38  PB154817  exp=0.7692s  n= 98
+  17:31:17  PB154820  exp=0.6250s  n=100
+  17:31:54  PB154823  exp=0.7692s  n= 96
+  -> 766 and 769 are 21 s apart. They cannot be two different
+     coverslips, so the 'control=766 / treatment=769' assumption
+     inherited from the earlier chat is not supported by the timing.
+
+=== 5. saturation, per field ===
+  pct of cells containing a clipped pixel: 8.8% - 70.0%
+  fields above 40%: 805, 820, 823
+  -> these fields lose their brightest cells to the QC filter, which
+     biases their means DOWNWARD by an unknown amount.

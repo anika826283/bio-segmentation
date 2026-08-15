@@ -211,8 +211,14 @@ pip install -r requirements.txt
 ```
 
 ```bash
-python -m ifquant.run_pair --backend classical
+python -m ifquant.run_study                        # 主要分析：6 條件 x 2 重複，形態學為主
+python -m ifquant.run_all                          # 全部 12 個 field，不分組
+python -m ifquant.confound_check                   # 混淆因子檢查（需先跑 run_all）
+python -m ifquant.run_pair --backend classical     # 早期的單一配對版本
 ```
+
+主要入口是 `run_study`。實驗分組定義在 [ifquant/groups.py](ifquant/groups.py)，
+結論在 [docs/03-morphology-study.md](docs/03-morphology-study.md)。
 
 輸出在 `results/`：
 
@@ -231,6 +237,20 @@ python -m ifquant.run_pair --backend classical
 ---
 
 ## 5. 目前結果
+
+> ### ⚠️ 這一節的結論已被後續分析推翻（2026-08-15）
+>
+> 跑完全部 12 個 field 之後發現兩件事：
+>
+> 1. **`766 = control / 769 = treatment` 這個分組假設不成立** —— 兩張只差 21 秒，
+>    不可能是兩張不同的玻片。
+> 2. **即使分組正確，效應也被自動曝光與細胞密度混淆**。field 之間 1.22 倍的差異，
+>    在數值上與曝光比值 1.23 完全相同，扣掉曝光後的殘餘是 **0.993**（等於沒有額外訊號）。
+>
+> **在補到 control/treatment 分組與 secondary-only 對照之前，不應該引用下面的數字。**
+> 完整分析見 [docs/02-all-fields-confound.md](docs/02-all-fields-confound.md)。
+>
+> 下面保留原始數字，作為 pipeline 運作正常的紀錄，不是實驗結論。
 
 單位：linear radiance / 秒。control 95 顆細胞、treatment 62 顆通過 QC。
 
@@ -292,8 +312,12 @@ CLAUDE.md       給 Claude Code 的專案規則
 ```
 
 `--backend cellpose` 的路徑也已實作（`segment_nuclei_cellpose` / `segment_cells_cellpose`，
-使用 Cellpose-SAM），但這台機器沒有 GPU，CPU 推論尚未跑出結果。
-目前所有數字都來自 classical backend。
+使用 Cellpose-SAM），但**在這個環境跑不起來**：`CellposeModel()` 建構時會去下載
+`cpsam_v2` 權重，而這台機器的對外連線被中止（`ConnectionAbortedError: WinError 10053`），
+所以推論從未開始 —— 不是速度問題。
+
+要啟用的話，需要先手動把權重放到 `~/.cellpose/models/`，或在有網路的環境跑一次讓它自己快取。
+**目前所有數字都來自 classical backend。** 從 QC 圖看，classical 的分割品質對這批影像足夠。
 
 ---
 
