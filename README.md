@@ -312,8 +312,12 @@ CLAUDE.md       給 Claude Code 的專案規則
 ```
 
 `--backend cellpose` 的路徑也已實作（`segment_nuclei_cellpose` / `segment_cells_cellpose`，
-使用 Cellpose-SAM），但這台機器沒有 GPU，CPU 推論尚未跑出結果。
-目前所有數字都來自 classical backend。
+使用 Cellpose-SAM），但**在這個環境跑不起來**：`CellposeModel()` 建構時會去下載
+`cpsam_v2` 權重，而這台機器的對外連線被中止（`ConnectionAbortedError: WinError 10053`），
+所以推論從未開始 —— 不是速度問題。
+
+要啟用的話，需要先手動把權重放到 `~/.cellpose/models/`，或在有網路的環境跑一次讓它自己快取。
+**目前所有數字都來自 classical backend。** 從 QC 圖看，classical 的分割品質對這批影像足夠。
 
 ---
 
