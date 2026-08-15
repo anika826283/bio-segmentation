@@ -8,6 +8,9 @@ test/
 *.tif
 *.tiff
 
+# Claude Code 的機器本地設定
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.pyc
