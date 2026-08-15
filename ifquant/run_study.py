@@ -12,7 +12,7 @@ Design constraints this script is built around (see ifquant/groups.py):
 """
 from __future__ import annotations
 
-import sys, time
+import argparse, sys, time
 from pathlib import Path
 
 import numpy as np
@@ -36,6 +36,7 @@ NUC_DIAM = 215.0
 
 # Metrics carried into the summary, with how far each can be trusted.
 METRICS = [
+    ("blue_nuc_mean",       "control",   "DAPI per nucleus -- should be CONSTANT"),
     ("n_nuclei",            "count",     "cells per field"),
     ("nuc_area",            "shape",     "nucleus size"),
     ("nuc_circularity",     "shape",     "nucleus roundness (1.0 = circle)"),
@@ -53,11 +54,20 @@ METRICS = [
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--no-exposure", action="store_true",
+                    help="treat every image as if it had the same exposure, i.e. skip "
+                         "dividing by EXIF exposure time")
+    args = ap.parse_args()
+    corr = not args.no_exposure
+    tag = "" if corr else "_noexp"
+
     OUT.mkdir(exist_ok=True)
     log = []
     def p(s):
         print(s, flush=True); log.append(s)
 
+    p(f"=== exposure correction: {'ON (divide by EXIF exposure)' if corr else 'OFF (assume fixed exposure)'} ===")
     fields = all_fields()
     p("L2: per-channel retrospective flat-fields")
     flat = {}
@@ -70,9 +80,9 @@ def main():
     for cond, rep, bn, gn, rn in fields:
         t0 = time.time()
         bp, gp, rp = (SRC / f"PB154{n}.JPG" for n in (bn, gn, rn))
-        blue, sat_b = load_linear(bp, "B")
-        green, sat_g = load_linear(gp, "G")
-        red, sat_r = load_linear(rp, "R")
+        blue, sat_b = load_linear(bp, "B", normalise_exposure=corr)
+        green, sat_g = load_linear(gp, "G", normalise_exposure=corr)
+        red, sat_r = load_linear(rp, "R", normalise_exposure=corr)
 
         shift, _ = check_alignment(blue, green)
         if np.abs(shift).max() > 1:
@@ -110,8 +120,8 @@ def main():
 
     per_cell = pd.concat(frames, ignore_index=True)
     per_field = pd.DataFrame(rows)
-    per_cell.to_csv(OUT / "study_per_cell.csv", index=False)
-    per_field.to_csv(OUT / "study_per_field.csv", index=False)
+    per_cell.to_csv(OUT / f"study_per_cell{tag}.csv", index=False)
+    per_field.to_csv(OUT / f"study_per_field{tag}.csv", index=False)
 
     p("\n=== DAPI bleed-through check (per-cell corr of nuclear DAPI vs nuclear green) ===")
     p(f"  median across fields = {per_field.dapi_green_corr.median():+.3f}")
@@ -132,7 +142,7 @@ def main():
                      "verdict": verdict, "description": desc})
         p(f"  {m:<22}{tier:<12}{rho:>9.3f}  {verdict}")
     cons = pd.DataFrame(cons)
-    cons.to_csv(OUT / "study_reproducibility.csv", index=False)
+    cons.to_csv(OUT / f"study_reproducibility{tag}.csv", index=False)
 
     p("\n=== signal-to-noise: can any metric separate the conditions at all? ===")
     p("  Spearman over 6 conditions is far too noisy to lean on (rho must exceed")
@@ -162,7 +172,7 @@ def main():
         p(f"  {m:<22}{100*tech_sd/grand:>9.1f}%{100*cond_sd/grand:>9.1f}%"
           f"{snr:>7.2f}{need:>8d}  {verdict}")
     snr_df = pd.DataFrame(snr_rows)
-    snr_df.to_csv(OUT / "study_snr.csv", index=False)
+    snr_df.to_csv(OUT / f"study_snr{tag}.csv", index=False)
     p(f"\n  -> median fields per well required: {int(snr_df.fields_needed.median())}")
     p("     (currently 2). This is the cheapest fix available: image more fields")
     p("     per well on the existing slides -- no new biology needed.")
@@ -192,8 +202,8 @@ def main():
     p("  rep1/rep2 are technical replicates; testing across them would be")
     p("  pseudoreplication. Everything above is descriptive.")
 
-    figure(per_field, per_cell, cons, OUT / "study_qc.png")
-    (OUT / "study_log.txt").write_text("\n".join(log), encoding="utf-8")
+    figure(per_field, per_cell, cons, OUT / f"study_qc{tag}.png")
+    (OUT / f"study_log{tag}.txt").write_text("\n".join(log), encoding="utf-8")
     p(f"\nwrote {OUT}")
 
 

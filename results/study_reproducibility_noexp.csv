@@ -1,5 +1,5 @@
 metric,tier,spearman,verdict,description
-blue_nuc_mean,control,-0.028571428571428574,NOT reproducible,DAPI per nucleus -- should be CONSTANT
+blue_nuc_mean,control,0.028571428571428574,NOT reproducible,DAPI per nucleus -- should be CONSTANT
 n_nuclei,count,0.46381682852195877,weak,cells per field
 nuc_area,shape,0.4285714285714286,weak,nucleus size
 nuc_circularity,shape,0.14285714285714288,NOT reproducible,nucleus roundness (1.0 = circle)
@@ -12,4 +12,4 @@ red_cell_cv,intensity,0.14285714285714288,NOT reproducible,iNOS punctateness (sc
 red_nc_ratio,intensity,-0.14285714285714288,NOT reproducible,iNOS nuclear:cytoplasmic
 green_nc_ratio,intensity,0.2571428571428572,NOT reproducible,MyD88 nuclear:cytoplasmic (exposure-immune)
 green_cell_cv,intensity,0.3714285714285715,weak,MyD88 punctateness (scale-invariant)
-green_cyto_mean,CONFOUNDED,0.2571428571428572,NOT reproducible,MyD88 absolute -- exposure-confounded
+green_cyto_mean,CONFOUNDED,0.3714285714285715,weak,MyD88 absolute -- exposure-confounded

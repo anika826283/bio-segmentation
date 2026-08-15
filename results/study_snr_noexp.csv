@@ -1,0 +1,15 @@
+metric,tier,tech_sd_pct,cond_sd_pct,snr,fields_needed,verdict,description
+blue_nuc_mean,control,3.7179335073034157,4.482697908402645,1.205696094240778,7,marginal,DAPI per nucleus -- should be CONSTANT
+n_nuclei,count,18.105728901486053,16.675329719334513,0.9209974262878675,11,swamped by field noise,cells per field
+nuc_area,shape,7.033497734396525,7.877380956189775,1.1199805919700998,8,marginal,nucleus size
+nuc_circularity,shape,1.3417210449387347,1.070521704902274,0.7978720382604984,15,swamped by field noise,nucleus roundness (1.0 = circle)
+nuc_solidity,shape,0.4667470236691655,0.32737519398189163,0.70139749667464,19,swamped by field noise,nucleus convexity
+nuc_aspect,shape,1.4380355725364564,1.5264313443910908,1.061469808913502,8,marginal,nucleus elongation
+cell_area,shape*,11.607169860830018,13.574194177468513,1.169466316097991,7,marginal,cell territory size (segmentation-dependent)
+cell_nuc_area_ratio,shape*,6.594493333885866,9.304702064396032,1.4109805853595656,5,marginal,cytoplasm-to-nucleus size
+red_cyto_mean,intensity,8.428083396475563,7.670898180684949,0.9101592639546909,11,swamped by field noise,"iNOS, cytoplasm -- CLEAN channel"
+red_cell_cv,intensity,17.722593400262905,11.895517495575875,0.6712063650571259,20,swamped by field noise,iNOS punctateness (scale-invariant)
+red_nc_ratio,intensity,5.022885048339467,2.017625145805668,0.40168650613907286,56,swamped by field noise,iNOS nuclear:cytoplasmic
+green_nc_ratio,intensity,5.665157846651849,4.882778860713803,0.8618963483249744,13,swamped by field noise,MyD88 nuclear:cytoplasmic (exposure-immune)
+green_cell_cv,intensity,13.480418798420814,9.985406448286769,0.7407341416912452,17,swamped by field noise,MyD88 punctateness (scale-invariant)
+green_cyto_mean,CONFOUNDED,6.7089967976083065,6.794806688713652,1.0127902715851549,9,marginal,MyD88 absolute -- exposure-confounded
