@@ -13,6 +13,18 @@
 輸入是 Olympus E-M5 Mark II 拍的 4608×3456 8-bit RGB JPEG，三張一組拍同一視野：
 B channel = DAPI 細胞核、G channel = MyD88、R channel = iNOS。
 
+## Tooling
+
+`gh` CLI 已安裝並授權（帳號 anika826283，scopes: repo/workflow/read:org/gist），
+但**不在這個 shell 的 PATH 上**。要用完整路徑呼叫：
+
+```
+$gh = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\GitHub.cli_Microsoft.Winget.Source_8wekyb3d8bbwe\bin\gh.exe"
+```
+
+PR / issue / CI 一律走 `gh`，**不要用瀏覽器自動化操作 GitHub** —— 先前試過，
+`form_input` 設 PR 標題會被 React 狀態覆蓋，且編輯器的自動列表接續會弄亂 markdown。
+
 ## Documentation rule
 
 任何分析只要產生結論，就要在 `docs/` 存一份 md，並在 `docs/README.md` 的索引表加一列。
