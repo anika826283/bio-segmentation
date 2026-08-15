@@ -1,0 +1,48 @@
+L2: estimating retrospective flat-field from all 12 green images
+L2: vignette falloff centre->corner = 44%
+
+  PB154766  exp=0.7692s  nuclei=125  kept= 95  cyto_mean=0.6452  (9s)
+  PB154769  exp=0.6250s  nuclei=129  kept= 62  cyto_mean=0.8600  (9s)
+  PB154796  exp=0.7692s  nuclei= 63  kept= 34  cyto_mean=0.6348  (9s)
+  PB154799  exp=0.6250s  nuclei=127  kept= 55  cyto_mean=0.8792  (8s)
+  PB154802  exp=0.6250s  nuclei=135  kept= 68  cyto_mean=0.8890  (8s)
+  PB154805  exp=0.7692s  nuclei=110  kept= 45  cyto_mean=0.7308  (9s)
+  PB154808  exp=0.6250s  nuclei=147  kept= 93  cyto_mean=0.7424  (8s)
+  PB154811  exp=0.7692s  nuclei=105  kept= 67  cyto_mean=0.6369  (9s)
+  PB154814  exp=0.7692s  nuclei= 98  kept= 54  cyto_mean=0.7007  (8s)
+  PB154817  exp=0.7692s  nuclei= 98  kept= 44  cyto_mean=0.6969  (8s)
+  PB154820  exp=0.6250s  nuclei=100  kept= 23  cyto_mean=0.7777  (8s)
+  PB154823  exp=0.7692s  nuclei= 96  kept= 22  cyto_mean=0.7064  (8s)
+
+=== per-field summary (offset = 0, linear radiance / s) ===
+   field  exposure_s     time  n_nuclei  n_kept  pct_saturated_cells  cyto_mean  cyto_median  cell_mean  raw8_mean
+PB154766      0.7692 17:11:22       125      95              13.6000     0.6452       0.6191     0.7271   168.2621
+PB154769      0.6250 17:11:43       129      62              33.3333     0.8600       0.8741     0.9630   174.9473
+PB154796      0.7692 17:23:33        63      34              36.5079     0.6348       0.6222     0.7210   158.8524
+PB154799      0.6250 17:25:00       127      55              36.2205     0.8792       0.8654     0.9890   168.8623
+PB154802      0.6250 17:26:59       135      68              30.3704     0.8890       0.8693     0.9981   174.9438
+PB154805      0.7692 17:27:27       110      45              47.2727     0.7308       0.7163     0.8184   171.7345
+PB154808      0.6250 17:28:31       147      93               8.8435     0.7424       0.7238     0.8271   159.1835
+PB154811      0.7692 17:29:22       105      67              27.6190     0.6369       0.6093     0.7378   162.7239
+PB154814      0.7692 17:30:17        98      54              24.4898     0.7007       0.6912     0.7923   167.5429
+PB154817      0.7692 17:30:38        98      44              39.7959     0.6969       0.6907     0.7903   167.1203
+PB154820      0.6250 17:31:17       100      23              70.0000     0.7777       0.7919     0.9086   166.8777
+PB154823      0.7692 17:31:54        96      22              60.4167     0.7064       0.6649     0.7919   170.3787
+
+=== grouping evidence ===
+  no control/treatment assignment was supplied; these are the separable signals
+
+  (a) auto-exposure level -- the camera shortens exposure on brighter samples,
+      so exposure is itself a coarse readout of sample brightness:
+      0.6250s  n= 5  fields: 769, 799, 802, 808, 820
+                 cyto_mean 0.8296 +- 0.0656
+      0.7692s  n= 7  fields: 766, 796, 805, 811, 814, 817, 823
+                 cyto_mean 0.6788 +- 0.0389
+
+  (b) acquisition gaps > 3 min (candidate slide/coverslip changes):
+       11.8 min gap before PB154796
+
+  (c) is cyto_mean bimodal across fields?
+      sorted: [0.635 0.637 0.645 0.697 0.701 0.706 0.731 0.742 0.778 0.86  0.879 0.889]
+      largest consecutive jump: 0.0824 between 0.778 and 0.860
+      spread/median = 0.35

@@ -211,7 +211,9 @@ pip install -r requirements.txt
 ```
 
 ```bash
-python -m ifquant.run_pair --backend classical
+python -m ifquant.run_pair --backend classical    # 單一 control/treatment 配對
+python -m ifquant.run_all                          # 全部 12 個 field + 分組證據
+python -m ifquant.confound_check                   # 混淆因子檢查（需先跑 run_all）
 ```
 
 輸出在 `results/`：
@@ -231,6 +233,20 @@ python -m ifquant.run_pair --backend classical
 ---
 
 ## 5. 目前結果
+
+> ### ⚠️ 這一節的結論已被後續分析推翻（2026-08-15）
+>
+> 跑完全部 12 個 field 之後發現兩件事：
+>
+> 1. **`766 = control / 769 = treatment` 這個分組假設不成立** —— 兩張只差 21 秒，
+>    不可能是兩張不同的玻片。
+> 2. **即使分組正確，效應也被自動曝光與細胞密度混淆**。field 之間 1.22 倍的差異，
+>    在數值上與曝光比值 1.23 完全相同，扣掉曝光後的殘餘是 **0.993**（等於沒有額外訊號）。
+>
+> **在補到 control/treatment 分組與 secondary-only 對照之前，不應該引用下面的數字。**
+> 完整分析見 [docs/02-all-fields-confound.md](docs/02-all-fields-confound.md)。
+>
+> 下面保留原始數字，作為 pipeline 運作正常的紀錄，不是實驗結論。
 
 單位：linear radiance / 秒。control 95 顆細胞、treatment 62 顆通過 QC。
 
