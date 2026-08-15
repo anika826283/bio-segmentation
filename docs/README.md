@@ -5,19 +5,31 @@
 
 | 日期 | 檔案 | 主題 | 狀態 |
 |---|---|---|---|
-| 2026-08-15 | [01-camera-characterisation.md](01-camera-characterisation.md) | 從影像反推相機參數：tone curve、自動白平衡、自動曝光 | 有效 |
-| 2026-08-15 | [02-all-fields-confound.md](02-all-fields-confound.md) | 12 個 field 全跑 + 混淆因子分析 | **有效，且推翻了先前的 T/C = 1.66** |
+| 2026-08-15 | [01-camera-characterisation.md](01-camera-characterisation.md) | 從影像反推相機參數：tone curve、自動白平衡、自動曝光 | 有效（相機參數暫緩處理） |
+| 2026-08-15 | [02-all-fields-confound.md](02-all-fields-confound.md) | 12 個 field 全跑 + 混淆因子分析 | 有效，且推翻了先前的 T/C = 1.66。**分組假設一節已被 03 取代** |
+| 2026-08-15 | [03-morphology-study.md](03-morphology-study.md) | 形態學為主的完整分析，6 條件 × 2 技術重複 | **有效，目前的主要文件** |
 
 ## 目前的總結論（一句話）
 
-> 這批 HMC3 / MyD88 影像**無法區分「treatment 效應」與「細胞密度經由自動曝光造成的假象」**。
-> 在補到必要的對照資料之前，不應該報告任何效應量。
+> **沒有任何指標能區分這六個條件** —— 視野間的變異跟條件間的差異一樣大。
+> 最便宜的解法是**每個孔從 2 個視野增加到約 13 個**，不需要重做生物實驗。
+> 「哪個治療比較好」目前答不了。
 
-詳見 [02-all-fields-confound.md](02-all-fields-confound.md)。
+詳見 [03-morphology-study.md](03-morphology-study.md)。
 
-## 待補資料（依重要性排序）
+## 已確立的事實
 
-1. **control / treatment 的分組** — 目前完全未知，先前沿用的假設已被時間戳推翻
-2. **secondary-only（只打二抗）對照影像** — 定出加性 offset
-3. **相機當時的實際設定** — 使用者將到實驗室確認後回報
-4. **相機 tone curve 校正 bracket** — M 模式、固定場景、已知曝光階梯
+- **紅色（iNOS）通道乾淨**：12 張全部 1.0000s 曝光，自動曝光撞到上限。
+  這是唯一絕對強度可跨 field 比較的通道。
+- **綠色（MyD88）絕對強度不可用**：health/disease 在兩次重複之間對調曝光，
+  結論方向跟著翻轉。
+- **生物學 n = 1**：六個條件各一個孔，全部在同一個 20 分鐘的 session 拍完。
+  rep1/rep2 是技術重複。
+
+## 待補資料（依投報率排序）
+
+1. **每孔多拍視野**：2 → 13 個以上。玻片還在的話不需要重做實驗。
+   **拍攝時務必用 M 模式固定曝光**，可同時解決曝光混淆。
+2. **生物重複**：至少 3 次獨立實驗。沒有這個，統計上的 n 永遠是 1。
+3. **secondary-only（只打二抗）對照影像** — 定出加性 offset
+4. **相機 tone curve 校正 bracket** — 使用者已表示暫緩

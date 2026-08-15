@@ -1,0 +1,14 @@
+metric,tier,spearman,verdict,description
+n_nuclei,count,0.46381682852195877,weak,cells per field
+nuc_area,shape,0.4285714285714286,weak,nucleus size
+nuc_circularity,shape,0.14285714285714288,NOT reproducible,nucleus roundness (1.0 = circle)
+nuc_solidity,shape,-0.028571428571428574,NOT reproducible,nucleus convexity
+nuc_aspect,shape,0.3714285714285715,weak,nucleus elongation
+cell_area,shape*,0.8285714285714287,reproducible,cell territory size (segmentation-dependent)
+cell_nuc_area_ratio,shape*,0.5428571428571429,weak,cytoplasm-to-nucleus size
+red_cyto_mean,intensity,0.3714285714285715,weak,"iNOS, cytoplasm -- CLEAN channel"
+red_cell_cv,intensity,0.14285714285714288,NOT reproducible,iNOS punctateness (scale-invariant)
+red_nc_ratio,intensity,-0.14285714285714288,NOT reproducible,iNOS nuclear:cytoplasmic
+green_nc_ratio,intensity,0.2571428571428572,NOT reproducible,MyD88 nuclear:cytoplasmic (exposure-immune)
+green_cell_cv,intensity,0.3714285714285715,weak,MyD88 punctateness (scale-invariant)
+green_cyto_mean,CONFOUNDED,0.2571428571428572,NOT reproducible,MyD88 absolute -- exposure-confounded

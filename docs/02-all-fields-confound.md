@@ -1,7 +1,10 @@
 # 02 — 12 個 field 全跑 + 混淆因子分析
 
 **日期**：2026-08-15
-**狀態**：**有效。本文推翻了先前「T/C = 1.66」的結論。**
+**狀態**：有效，本文推翻了先前「T/C = 1.66」的結論。
+**但「發現 4：時間戳推翻了先前的分組假設」一節已過時** —— 使用者後來提供了真實分組，
+766（健康）與 769（疾病）確實是不同樣本，相隔 21 秒是因為多孔 chamber slide 移動載物台，
+不是換 coverslip。曝光混淆的結論不受影響。以 [03-morphology-study.md](03-morphology-study.md) 為準。
 **資料**：`HMC3 activated marker IF GMy88 R INOX/`，12 個 field
 **程式**：`ifquant/run_all.py`、`ifquant/confound_check.py`
 **輸出**：`results/per_field_all.csv`、`results/per_cell_all.csv`、`results/qc_all_fields.png`、`results/confound_check.txt`

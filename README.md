@@ -211,10 +211,14 @@ pip install -r requirements.txt
 ```
 
 ```bash
-python -m ifquant.run_pair --backend classical    # 單一 control/treatment 配對
-python -m ifquant.run_all                          # 全部 12 個 field + 分組證據
+python -m ifquant.run_study                        # 主要分析：6 條件 x 2 重複，形態學為主
+python -m ifquant.run_all                          # 全部 12 個 field，不分組
 python -m ifquant.confound_check                   # 混淆因子檢查（需先跑 run_all）
+python -m ifquant.run_pair --backend classical     # 早期的單一配對版本
 ```
+
+主要入口是 `run_study`。實驗分組定義在 [ifquant/groups.py](ifquant/groups.py)，
+結論在 [docs/03-morphology-study.md](docs/03-morphology-study.md)。
 
 輸出在 `results/`：
 
