@@ -36,7 +36,15 @@ def _exif(path: Path) -> dict:
 
 
 def exposure_time(path: Path) -> float:
-    """EXIF exposure time in seconds."""
+    """EXIF exposure time in seconds, unrounded.
+
+    Do not cross-check this against plain `exiftool -ExposureTime`: for values
+    >= 0.25 s exiftool prints them through %.1f, so 0.625 s displays as "0.6" and
+    0.769 s as "0.8". Those are the same numbers, not different ones, and
+    "correcting" the code to the displayed values would introduce a ~4% exposure
+    error straight onto the group comparison, since control and treatment were
+    shot at different exposures. Use `exiftool -ExposureTime#` for raw values.
+    """
     return float(_exif(path)["ExposureTime"])
 
 
