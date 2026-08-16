@@ -5,7 +5,7 @@
 """
 from __future__ import annotations
 
-import argparse, json, sys, time
+import argparse, json, os, sys, time
 from pathlib import Path
 
 import numpy as np
@@ -23,8 +23,11 @@ from ifquant.segment import (segment_nuclei_classical, segment_nuclei_cellpose,
                               drop_edge_cells, check_alignment)
 from ifquant.measure import measure_cells, summarise, offset_sensitivity
 
-SRC = Path(r"C:\workspace\bio img process\HMC3 activated marker IF GMy88 R INOX")
-OUT = Path(r"C:\workspace\bio img process\results")
+# Defaults are one machine's layout; the data has moved before. Override with
+# --src / --out (or IFQUANT_SRC / IFQUANT_OUT) rather than editing this file.
+SRC = Path(os.environ.get("IFQUANT_SRC",
+                          r"C:\workspace\bio img process\HMC3 activated marker IF GMy88 R INOX"))
+OUT = Path(os.environ.get("IFQUANT_OUT", r"C:\workspace\bio img process\results"))
 GREEN_SET = ["PB154766", "PB154769", "PB154796", "PB154799", "PB154802", "PB154805",
              "PB154808", "PB154811", "PB154814", "PB154817", "PB154820", "PB154823"]
 PAIR = {"control": ("PB154765", "PB154766"), "treatment": ("PB154768", "PB154769")}
@@ -65,11 +68,24 @@ def process(group, blue_stem, green_stem, flat, backend, log):
 
 
 def main():
+    global SRC, OUT
     ap = argparse.ArgumentParser()
     ap.add_argument("--backend", default="classical", choices=["classical", "cellpose"])
     ap.add_argument("--column", default="cyto_mean")
+    ap.add_argument("--src", type=Path, default=SRC, help="folder holding the .JPG fields")
+    ap.add_argument("--out", type=Path, default=OUT, help="folder to write results into")
     args = ap.parse_args()
-    OUT.mkdir(exist_ok=True)
+
+    SRC, OUT = args.src, args.out
+    if not SRC.is_dir():
+        sys.exit(f"image folder not found: {SRC}\n"
+                 f"pass --src <folder> (or set IFQUANT_SRC)")
+    missing = [s for s in GREEN_SET if not (SRC / f"{s}.JPG").exists()]
+    if missing:
+        sys.exit(f"{len(missing)} of {len(GREEN_SET)} expected images missing in {SRC}, "
+                 f"first: {missing[0]}.JPG\n"
+                 f"check --src points at the folder holding the .JPG files themselves")
+    OUT.mkdir(parents=True, exist_ok=True)
     lines = []
     def log(s):
         print(s, flush=True)
