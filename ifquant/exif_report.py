@@ -87,13 +87,38 @@ def main():
         print(f"  {field:<24} {vals}{flag}")
         print(f"  {'':<24} ^ {why}")
 
-    if "Gradation" in mn.columns:
-        grad = set(mn.Gradation.dropna().astype(str))
-        if any("auto" in g.lower() for g in grad):
-            print("\n  WARNING Gradation is Auto. The camera applied a different shadow-lifting")
-            print("  curve to each frame based on its own histogram, so the L1 linearisation")
-            print("  error is per-image, not a fixed bias. Cross-image intensity comparison")
-            print("  is materially less trustworthy than the README currently claims.")
+    _warn_adaptive(mn)
+
+
+def _warn_adaptive(mn: pd.DataFrame):
+    """Flag settings that make the camera's transform vary from frame to frame.
+
+    These are the ones that break cross-image comparison, because control and
+    treatment fields differ in content by construction, so a content-dependent
+    transform lands differently on the two groups.
+    """
+    def vals(col):
+        return set(mn[col].dropna().astype(str)) if col in mn.columns else set()
+
+    if any("auto" in g.lower() for g in vals("Gradation")):
+        print("\n  WARNING Gradation is Auto: a different shadow-lifting curve per frame,")
+        print("  chosen from that frame's own histogram. L1's error becomes per-image")
+        print("  rather than a fixed bias.")
+
+    if any("enhance" in m.lower() for m in vals("PictureMode")):
+        print("\n  WARNING Picture Mode is i-Enhance: a scene-adaptive contrast/saturation")
+        print("  transform that varies with image content, is not recorded anywhere, and")
+        print("  is not undone by the inverse sRGB EOTF. Control and treatment fields")
+        print("  differ in content by construction, so this is a systematic confound on")
+        print("  the group comparison, not just added noise.")
+
+    if any("auto" in w.lower() for w in vals("WhiteBalance2")):
+        print("\n  WARNING White balance is Auto: per-channel R/G/B gains were chosen per")
+        print("  frame, so absolute G values are not directly comparable across images.")
+
+    if any(s.lower() not in ("off", "0") for s in vals("ShadingCompensation")):
+        print("\n  WARNING Shading Compensation is on: the camera already corrected")
+        print("  vignetting, so the L2 retrospective flat-field would correct it twice.")
 
 
 if __name__ == "__main__":

@@ -102,12 +102,18 @@ def main():
         f"LightSource={sorted(set(audit.light_source.dropna()))} (1=daylight)")
     if audit.exposure_s.nunique() > 1 or audit.iso.nunique() > 1:
         log("L0: exposure and/or ISO vary between frames -- normalised out at L1.")
-    # The body was set to the fixed Daylight preset, so per-channel gains should be
-    # constant; only flag WB if LightSource agrees the camera really was on auto.
-    if audit.light_source.isin([0, None]).all() and audit.white_balance.eq(0).any():
-        log("L0: WARNING white balance may be auto -- per-channel gains would vary "
-            "between frames and cannot be corrected downstream; treat cross-image "
-            "G comparisons as semi-quantitative only.")
+    # Confirmed from the MakerNote (WhiteBalance2 = Auto): the camera chose per-channel
+    # gains per frame. Nothing downstream can undo that, so it is stated every run
+    # rather than left to be rediscovered.
+    if audit.white_balance.eq(0).any():
+        log("L0: WARNING auto white balance -- per-channel gains vary between frames "
+            "and cannot be corrected downstream; cross-image G comparisons are "
+            "semi-quantitative only.")
+    log("L0: NOTE Picture Mode is i-Enhance, a scene-adaptive tone/colour transform. "
+        "It differs per image with image content, is not recorded, and is not undone "
+        "by the L1 inverse sRGB EOTF. Since control and treatment fields differ in "
+        "content by construction, this is a systematic confound on the group "
+        "comparison, not just noise.")
 
     log("L2: estimating retrospective flat-field from %d green images..." % len(GREEN_SET))
     flat = estimate_flatfield([SRC / f"{s}.JPG" for s in GREEN_SET], "G")

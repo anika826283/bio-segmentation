@@ -17,7 +17,7 @@
 | 格式 | 8-bit RGB JPEG（有損壓縮） |
 | ISO | 影像 EXIF 都是 1600，但機身設定是 **ISO AUTO**（見下） |
 | 曝光 | **自動**（`ExposureProgram = 2`，機身在 P 模式） |
-| 白平衡 | **固定「晴天」預設**（機身面板確認）；EXIF `WhiteBalance = 0` 不可信，見下 |
+| 白平衡 | **自動**（MakerNote `WhiteBalance2 = Auto`，與 EXIF `WhiteBalance = 0` 一致）|
 
 ### 機身實際設定（由 Super Control Panel 照片確認）
 
@@ -25,7 +25,7 @@
 |---|---|---|
 | 曝光模式 | P（程式自動） | 快門在 0.625–0.769 s 間跳動，必須除曝光時間 |
 | ISO | **AUTO** | 相機可自行改增益。本批 EXIF 剛好都落在 1600，但這是結果不是保證 |
-| 白平衡 | **固定「晴天」**，A±0 / G±0 | ✅ 通道增益跨影像固定，不會逐張漂移 |
+| 白平衡 | **自動**（以檔案為準）| ❌ 通道增益逐張浮動，事後無法校正 |
 | 色彩空間 | **sRGB** | 確認 L1 用反 sRGB EOTF 是對的轉換函數 |
 | 畫質 | LN / NORM | 8-bit 有損 JPEG |
 | 對焦 | MF | 焦平面手動固定 |
@@ -38,18 +38,45 @@
 > 跑掉，這一層會自動吸收掉，不會混進訊號差異裡。跑 `run_pair` 時 L0 會先印出整批的
 > 曝光/ISO/白平衡範圍，任何漂移都會在 log 最上面看到。
 
-> **白平衡：以面板為準，不要信 EXIF 那個旗標。** 面板照片是拍攝當下的設定，白平衡
-> 是固定「晴天」預設。標準 EXIF 的 `WhiteBalance` 只是 0/1 粗略旗標，Olympus 並未
-> 可靠填寫，本批讀到 0（自動）與機身實際設定矛盾；真正的預設值在 `LightSource`
-> 與 MakerNote。`exif_audit()` 兩個欄位都會印出來，判讀時以 `LightSource` 為準。
->
-> 這一點讓結論往好的方向修一格：通道增益跨影像固定，**不是**逐張漂移，所以
-> 「跨影像比 G 通道」少掉一個原本無法事後校正的誤差來源。但 L1 tone curve 與
-> L3 加性 offset 這兩個限制不受影響，主結論仍維持區間報告。
+### MakerNote 實測（`PB154766.JPG`，exiftool 13.59）
 
-> **尚未釐清**：Picture Mode 是 Custom（Shooting Menu 1 確認），其 Gradation 設定待確認。
-> 若是 **Auto**，Olympus 會依每張影像的直方圖套用不同的暗部提升曲線，那樣 L1 的誤差
-> 就不只是「與 sRGB 略有出入」的固定偏差，而是**逐張不同**，跨影像比較的可信度要再往下修。
+```
+Gradation            : Normal; User-Selected
+Picture Mode         : i-Enhance; 2
+Color Space          : sRGB
+White Balance 2      : Auto
+Shading Compensation : Off
+Noise Filter         : Standard
+```
+
+**以檔案為準，不要以機身選單為準。** 機身面板顯示白平衡是固定「晴天」、Picture Mode
+是 Custom，但檔案記的是 Auto 與 i-Enhance。MakerNote 記的是**這張影像實際套用**的設定，
+選單顯示的是**現在**的狀態，兩者不一致時一律以檔案為準。
+
+| 欄位 | 結果 | 影響 |
+|---|---|---|
+| Shading Compensation | Off | ✅ 機身沒做周邊減光補正，不會和 L2 flat-field 重複校正 |
+| Color Space | sRGB | ✅ 確認 L1 的反 EOTF 選對了函數族 |
+| Gradation | **Normal**（非 Auto）| ✅ 色調曲線固定，不隨每張直方圖變動 |
+| Picture Mode | **i-Enhance** | ❌ **場景自適應**，見下 |
+| White Balance 2 | **Auto** | ❌ 通道增益逐張浮動，無法事後校正 |
+| Noise Filter | Standard | ⚠️ 機身有做空間降噪，改變了逐像素統計 |
+
+> **i-Enhance 是目前最嚴重的問題。** Gradation 是 Normal 本來是好消息 —— 但 Picture Mode
+> 的**基底**是 i-Enhance，Olympus 這個模式會分析每張影像的內容，套用**因場景而異**的
+> 對比與飽和度增強。也就是說我原本擔心 Gradation Auto 會造成的「逐張不同的非線性轉換」，
+> 換成從 Picture Mode 這條路徑發生了。
+>
+> 這對本專案的主比較是**系統性混淆**，不只是雜訊：control 與 treatment 視野的影像內容
+> 本來就不同（這正是要量的東西），因此兩組會被套上不同的增強曲線，而增強量與訊號強度
+> 相關。反 sRGB EOTF 無法還原它，因為那個轉換逐張不同且未被記錄。
+>
+> **白平衡 Auto 是同一類問題的第二個來源**：R/G/B 增益逐張由相機自行決定，G 通道的
+> 絕對值因此不可跨影像直接比較。
+
+**結論修正方向**：這兩項都無法事後校正，所以跨影像的絕對強度比較比原本認定的還要更弱。
+`cyto_mean` 的組間差異必須視為**半定量的方向性指標**，效應量區間應再放寬。原本的
+「沒有 secondary-only control 所以 offset 是自由參數」仍然成立，現在是三個限制疊加。
 
 ### 從檔案讀回拍攝設定 — `python -m ifquant.exif_report <資料夾>`
 
@@ -364,8 +391,11 @@ CLAUDE.md       給 Claude Code 的專案規則
 
 如果還有機會重拍，這三件事會讓上面大半的救援工作變成不必要：
 
-- 相機切到 **M 模式**：固定曝光、**ISO 從 AUTO 改成固定值**、白平衡設固定預設值
-- Picture Mode 從 Custom 改成 **Natural**，Gradation 設 **Normal**（不要 Auto）—— 避免
-  相機逐張套不同的色調曲線
+- 相機切到 **M 模式**：固定曝光、**ISO 從 AUTO 改成固定值**
+- 白平衡從 **Auto 改成固定預設**（晴天或自訂色溫皆可，重點是固定）—— 否則 R/G/B
+  增益逐張浮動
+- Picture Mode 從 **i-Enhance 改成 Natural**（Gradation 維持 Normal）—— i-Enhance 是
+  場景自適應的，是目前最大的定量障礙
+- **Noise Filter 關閉** —— 空間降噪會改變逐像素統計
 - 存 **RAW（.ORF）** 而不是 JPEG —— 直接得到線性的 12-bit 資料，L1 整層可以省掉
 - 拍一張 **secondary-only** 與一張 **flat-field 參考**（均勻螢光片）
