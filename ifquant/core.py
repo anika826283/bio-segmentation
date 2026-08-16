@@ -1,7 +1,7 @@
 """
 IF quantification pipeline for RGB-JPEG widefield images (Olympus E-M5 II on scope).
 
-L1 linearise   : inverse sRGB EOTF, then divide by EXIF exposure time
+L1 linearise   : inverse sRGB EOTF, then divide by EXIF exposure time and ISO gain
 L2 shading     : retrospective flat-field DIVISION (multiplicative correction)
 L3 offset      : additive offset subtraction (camera black + non-specific)
 L4 segment     : nuclei from DAPI, whole cell from DAPI+marker
@@ -20,13 +20,62 @@ Image.MAX_IMAGE_PIXELS = None
 
 CH = {"R": 0, "G": 1, "B": 2}
 
+# The camera was left in P mode with ISO AUTO (confirmed from the Super Control
+# Panel), so ISO is a free variable in principle, not a constant of the setup.
+# Sensor response is linear in ISO gain, so ISO is divided out alongside exposure
+# time. Normalising to the ISO the reference batch actually landed on (rather than
+# to ISO 100) keeps the units identical to the numbers already reported in
+# README.md -- with an all-ISO-1600 batch this factor is exactly 1.
+ISO_REF = 1600.0
+
 
 # ---------------------------------------------------------------- L1 linearise
+def _exif(path: Path) -> dict:
+    ex = Image.open(path)._getexif() or {}
+    return {ExifTags.TAGS.get(k, k): v for k, v in ex.items()}
+
+
 def exposure_time(path: Path) -> float:
     """EXIF exposure time in seconds."""
-    ex = Image.open(path)._getexif() or {}
-    tags = {ExifTags.TAGS.get(k, k): v for k, v in ex.items()}
-    return float(tags["ExposureTime"])
+    return float(_exif(path)["ExposureTime"])
+
+
+def iso_speed(path: Path) -> float:
+    """EXIF ISO sensitivity. Pillow renames this tag across versions, and some
+    writers store it as a tuple, so accept both spellings and unwrap sequences."""
+    tags = _exif(path)
+    for key in ("ISOSpeedRatings", "PhotographicSensitivity"):
+        if key in tags:
+            v = tags[key]
+            return float(v[0] if isinstance(v, (tuple, list)) else v)
+    raise KeyError(f"no ISO tag in EXIF of {path.name}")
+
+
+def exif_audit(paths) -> "list[dict]":
+    """Per-image exposure/ISO/WB/program, for checking that the batch really was
+    shot under one set of camera settings.
+
+    Worth running before trusting any cross-image comparison: P mode + ISO AUTO
+    means the camera is free to change exposure AND gain between frames, and
+    auto WB would additionally change the per-channel gains, which no amount of
+    downstream normalisation can undo.
+    """
+    rows = []
+    for p in map(Path, paths):
+        tags = _exif(p)
+        try:
+            iso = iso_speed(p)
+        except KeyError:
+            iso = float("nan")
+        rows.append({
+            "file": p.name,
+            "exposure_s": float(tags.get("ExposureTime", float("nan"))),
+            "iso": iso,
+            # EXIF spec: WhiteBalance 0 = auto, 1 = manual/preset.
+            "white_balance": tags.get("WhiteBalance"),
+            "exposure_program": tags.get("ExposureProgram"),
+        })
+    return rows
 
 
 def srgb_to_linear(u8: np.ndarray) -> np.ndarray:
@@ -41,12 +90,13 @@ def srgb_to_linear(u8: np.ndarray) -> np.ndarray:
 
 
 def load_linear(path: Path, channel: str, normalise_exposure: bool = True):
-    """Return (linear_rate, saturation_mask). rate is linear radiance per second."""
+    """Return (linear_rate, saturation_mask). rate is linear radiance per second
+    at ISO_REF, so images shot at different auto-exposure settings are comparable."""
     raw = np.asarray(Image.open(path))[..., CH[channel]]
     sat = raw >= 254
     lin = srgb_to_linear(raw)
     if normalise_exposure:
-        lin = lin / exposure_time(path)
+        lin = lin / exposure_time(path) / (iso_speed(path) / ISO_REF)
     return lin, sat
 
 

@@ -16,8 +16,8 @@ import matplotlib.pyplot as plt
 from scipy import ndimage as ndi
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from ifquant.core import (load_linear, exposure_time, estimate_flatfield,
-                          apply_flatfield, offset_from_darkest)
+from ifquant.core import (load_linear, exposure_time, iso_speed, exif_audit,
+                          estimate_flatfield, apply_flatfield, offset_from_darkest)
 from ifquant.segment import (segment_nuclei_classical, segment_nuclei_cellpose,
                               segment_cells_seeded, segment_cells_cellpose,
                               drop_edge_cells, check_alignment)
@@ -35,8 +35,9 @@ def process(group, blue_stem, green_stem, flat, backend, log):
     t0 = time.time()
     blue, _ = load_linear(SRC / f"{blue_stem}.JPG", "B")
     green, sat = load_linear(SRC / f"{green_stem}.JPG", "G")
-    log(f"[{group}] {blue_stem}(B) exp={exposure_time(SRC/f'{blue_stem}.JPG'):.4f}s  "
-        f"{green_stem}(G) exp={exposure_time(SRC/f'{green_stem}.JPG'):.4f}s")
+    bp, gp = SRC / f"{blue_stem}.JPG", SRC / f"{green_stem}.JPG"
+    log(f"[{group}] {blue_stem}(B) exp={exposure_time(bp):.4f}s iso={iso_speed(bp):.0f}  "
+        f"{green_stem}(G) exp={exposure_time(gp):.4f}s iso={iso_speed(gp):.0f}")
 
     # The two channels are separate exposures with a filter-cube change in between,
     # so the field can shift. Register blue onto green before using blue's masks
@@ -75,6 +76,18 @@ def main():
         lines.append(s)
 
     log(f"=== backend={args.backend}  metric={args.column} ===")
+
+    # L0: the camera was on P + ISO AUTO, so verify what it actually chose per frame
+    # before comparing anything across frames.
+    audit = pd.DataFrame(exif_audit([SRC / f"{s}.JPG" for s in GREEN_SET]))
+    log(f"L0: exposure {audit.exposure_s.min():.4f}-{audit.exposure_s.max():.4f}s, "
+        f"ISO {audit.iso.min():.0f}-{audit.iso.max():.0f}, "
+        f"WhiteBalance={sorted(set(audit.white_balance.dropna()))} (0=auto, 1=manual)")
+    if audit.white_balance.eq(0).any():
+        log("L0: WARNING auto white balance -- per-channel gains vary between frames "
+            "and cannot be corrected downstream; treat cross-image G comparisons as "
+            "semi-quantitative only.")
+
     log("L2: estimating retrospective flat-field from %d green images..." % len(GREEN_SET))
     flat = estimate_flatfield([SRC / f"{s}.JPG" for s in GREEN_SET], "G")
     log(f"L2: vignette falloff centre->corner = {100*(1-flat.min()):.0f}%")

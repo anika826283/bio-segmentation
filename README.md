@@ -15,9 +15,33 @@
 | 相機 | Olympus E-M5 Mark II（消費級 Bayer 相機掛在顯微鏡上） |
 | 解析度 | 4608 × 3456 |
 | 格式 | 8-bit RGB JPEG（有損壓縮） |
-| ISO | 1600（固定） |
-| 曝光 | **自動**（`ExposureProgram = 2`） |
-| 白平衡 | **自動**（`WhiteBalance = 0`） |
+| ISO | 影像 EXIF 都是 1600，但機身設定是 **ISO AUTO**（見下） |
+| 曝光 | **自動**（`ExposureProgram = 2`，機身在 P 模式） |
+| 白平衡 | 影像 EXIF `WhiteBalance = 0`（自動）|
+
+### 機身實際設定（由 Super Control Panel 照片確認）
+
+| 項目 | 設定 | 影響 |
+|---|---|---|
+| 曝光模式 | P（程式自動） | 快門在 0.625–0.769 s 間跳動，必須除曝光時間 |
+| ISO | **AUTO** | 相機可自行改增益。本批 EXIF 剛好都落在 1600，但這是結果不是保證 |
+| 色彩空間 | **sRGB** | 確認 L1 用反 sRGB EOTF 是對的轉換函數 |
+| 畫質 | LN / NORM | 8-bit 有損 JPEG |
+| 對焦 | MF | 焦平面手動固定 |
+| 閃燈 | 關閉，補償 ±0.0 | 純落射螢光 |
+| 銳利度 / 對比 | S±0 / C±0 | 未額外加銳化或對比 |
+| Picture Mode | **Custom** | ⚠️ 不是 Natural/Flat，tone curve 未知 |
+
+> **ISO AUTO 的處理**：感光度對增益是線性的，所以 L1 除完曝光時間後再除 ISO 增益
+> （`core.py: ISO_REF`）。以 ISO 1600 為基準，因此本批數值不變；但若之後某張的 ISO
+> 跑掉，這一層會自動吸收掉，不會混進訊號差異裡。跑 `run_pair` 時 L0 會先印出整批的
+> 曝光/ISO/白平衡範圍，任何漂移都會在 log 最上面看到。
+
+> **兩個尚未釐清的點**：(a) 機身面板顯示白平衡是固定「晴天」，但影像 EXIF 是
+> `WhiteBalance = 0`（自動）—— 若面板照片與拍攝當下設定不同，通道增益的穩定性結論會改變；
+> (b) Picture Mode 是 Custom，其 Gradation 若設為 **Auto**，Olympus 會依每張影像的
+> 直方圖套用不同的暗部提升曲線，那樣 L1 的誤差就不只是「與 sRGB 略有出入」，而是
+> **逐張不同**，跨影像比較的可信度要再往下修。
 
 每個視野拍三張，中間換螢光濾片。三張都是 RGB 檔，但各自只有一個 channel 有訊號：
 
@@ -114,12 +138,13 @@ ImageJ 常用的 rolling ball（`Process ▸ Subtract Background`）是**減法*
 **白話**：把 JPEG 的 8-bit 值還原成「光的量」，再除以曝光時間。
 
 ```
-8-bit 值 → 反 sRGB gamma → 除以 EXIF 曝光時間 → 「每秒的光」
+8-bit 值 → 反 sRGB gamma → 除以 EXIF 曝光時間 → 除以 ISO 增益 → 「每秒的光」
 ```
 
 之後所有數字的單位都是 **linear radiance / 秒**，不再是 8-bit 值。
 
-⚠️ 這一層是近似的：Olympus 有自己的 picture-mode tone curve，不完全等於標準 sRGB。
+⚠️ 這一層是近似的：色彩空間確認是 sRGB，但 Picture Mode 是 **Custom**，Olympus 仍會
+套自己的 tone curve，不完全等於標準 sRGB EOTF。
 這是這條救援路線最主要的殘留誤差。
 
 ### L2 照明修正 — `core.py: estimate_flatfield`, `apply_flatfield`
@@ -308,6 +333,8 @@ CLAUDE.md       給 Claude Code 的專案規則
 
 如果還有機會重拍，這三件事會讓上面大半的救援工作變成不必要：
 
-- 相機切到 **M 模式**：固定曝光、固定 ISO、固定白平衡
+- 相機切到 **M 模式**：固定曝光、**ISO 從 AUTO 改成固定值**、白平衡設固定預設值
+- Picture Mode 從 Custom 改成 **Natural**，Gradation 設 **Normal**（不要 Auto）—— 避免
+  相機逐張套不同的色調曲線
 - 存 **RAW（.ORF）** 而不是 JPEG —— 直接得到線性的 12-bit 資料，L1 整層可以省掉
 - 拍一張 **secondary-only** 與一張 **flat-field 參考**（均勻螢光片）
