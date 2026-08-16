@@ -47,9 +47,32 @@
 > 「跨影像比 G 通道」少掉一個原本無法事後校正的誤差來源。但 L1 tone curve 與
 > L3 加性 offset 這兩個限制不受影響，主結論仍維持區間報告。
 
-> **尚未釐清**：Picture Mode 是 Custom，其 Gradation 設定待確認。若是 **Auto**，
-> Olympus 會依每張影像的直方圖套用不同的暗部提升曲線，那樣 L1 的誤差就不只是
-> 「與 sRGB 略有出入」的固定偏差，而是**逐張不同**，跨影像比較的可信度要再往下修。
+> **尚未釐清**：Picture Mode 是 Custom（Shooting Menu 1 確認），其 Gradation 設定待確認。
+> 若是 **Auto**，Olympus 會依每張影像的直方圖套用不同的暗部提升曲線，那樣 L1 的誤差
+> 就不只是「與 sRGB 略有出入」的固定偏差，而是**逐張不同**，跨影像比較的可信度要再往下修。
+
+### 從檔案讀回拍攝設定 — `python -m ifquant.exif_report <資料夾>`
+
+```
+python -m ifquant.exif_report "HMC3 activated marker IF GMy88 R INOX"
+```
+
+機身選單顯示的是**現在**的設定，影像檔記的是**當時**的設定 —— 白平衡那次矛盾就是這麼來的，
+所以會影響 L1–L3 的設定一律從檔案讀回，不靠選單截圖。
+
+標準 EXIF 由 Pillow 讀。但真正決定 pipeline 假設成不成立的欄位（尤其 **Gradation**）
+在 Olympus MakerNote 裡，Pillow 不解析，需要 exiftool：
+
+```
+brew install exiftool           # macOS
+apt install libimage-exiftool-perl   # Ubuntu
+```
+
+沒裝 exiftool 時標準 EXIF 那半仍會印，MakerNote 那半標為無法取得，不會用猜的補。
+報告會標出整批不一致的欄位，並在 `Gradation = Auto` 時明確警告。
+
+其中 `ShadingCompensation` 要特別留意：若機身開了內建周邊減光補正，它會和 L2 的
+retrospective flat-field **重複校正**同一件事。
 
 每個視野拍三張，中間換螢光濾片。三張都是 RGB 檔，但各自只有一個 channel 有訊號：
 
