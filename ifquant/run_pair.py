@@ -82,11 +82,16 @@ def main():
     audit = pd.DataFrame(exif_audit([SRC / f"{s}.JPG" for s in GREEN_SET]))
     log(f"L0: exposure {audit.exposure_s.min():.4f}-{audit.exposure_s.max():.4f}s, "
         f"ISO {audit.iso.min():.0f}-{audit.iso.max():.0f}, "
-        f"WhiteBalance={sorted(set(audit.white_balance.dropna()))} (0=auto, 1=manual)")
-    if audit.white_balance.eq(0).any():
-        log("L0: WARNING auto white balance -- per-channel gains vary between frames "
-            "and cannot be corrected downstream; treat cross-image G comparisons as "
-            "semi-quantitative only.")
+        f"WhiteBalance={sorted(set(audit.white_balance.dropna()))} (0=auto, 1=manual), "
+        f"LightSource={sorted(set(audit.light_source.dropna()))} (1=daylight)")
+    if audit.exposure_s.nunique() > 1 or audit.iso.nunique() > 1:
+        log("L0: exposure and/or ISO vary between frames -- normalised out at L1.")
+    # The body was set to the fixed Daylight preset, so per-channel gains should be
+    # constant; only flag WB if LightSource agrees the camera really was on auto.
+    if audit.light_source.isin([0, None]).all() and audit.white_balance.eq(0).any():
+        log("L0: WARNING white balance may be auto -- per-channel gains would vary "
+            "between frames and cannot be corrected downstream; treat cross-image "
+            "G comparisons as semi-quantitative only.")
 
     log("L2: estimating retrospective flat-field from %d green images..." % len(GREEN_SET))
     flat = estimate_flatfield([SRC / f"{s}.JPG" for s in GREEN_SET], "G")

@@ -59,6 +59,13 @@ def exif_audit(paths) -> "list[dict]":
     means the camera is free to change exposure AND gain between frames, and
     auto WB would additionally change the per-channel gains, which no amount of
     downstream normalisation can undo.
+
+    Both WB columns are reported because they disagree on this camera. The body
+    was confirmed set to the fixed Daylight preset, yet the standard EXIF
+    WhiteBalance flag reads 0 ("auto"). That flag is coarse and Olympus does not
+    populate it reliably; LightSource carries the preset. Trust LightSource=1
+    (daylight) over WhiteBalance=0, and do not conclude "auto WB" from the flag
+    alone.
     """
     rows = []
     for p in map(Path, paths):
@@ -73,6 +80,8 @@ def exif_audit(paths) -> "list[dict]":
             "iso": iso,
             # EXIF spec: WhiteBalance 0 = auto, 1 = manual/preset.
             "white_balance": tags.get("WhiteBalance"),
+            # EXIF spec: LightSource 1 = daylight, 0 = unknown.
+            "light_source": tags.get("LightSource"),
             "exposure_program": tags.get("ExposureProgram"),
         })
     return rows
