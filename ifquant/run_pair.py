@@ -106,9 +106,10 @@ def main():
     # gains per frame. Nothing downstream can undo that, so it is stated every run
     # rather than left to be rediscovered.
     if audit.white_balance.eq(0).any():
-        log("L0: WARNING auto white balance -- per-channel gains vary between frames "
-            "and cannot be corrected downstream; cross-image G comparisons are "
-            "semi-quantitative only.")
+        log("L0: auto white balance. Measured WB_RBLevels show gains apply to R and B "
+            "against a fixed G reference (256), so the measured G channel is not "
+            "directly scaled; DAPI/iNOS are. Residual effect on G is only via the "
+            "colour matrix cross-terms.")
     log("L0: NOTE Picture Mode is i-Enhance, a scene-adaptive tone/colour transform. "
         "It differs per image with image content, is not recorded, and is not undone "
         "by the L1 inverse sRGB EOTF. Since control and treatment fields differ in "

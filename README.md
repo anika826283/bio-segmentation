@@ -59,7 +59,7 @@ Noise Filter         : Standard
 | Color Space | sRGB | ✅ 確認 L1 的反 EOTF 選對了函數族 |
 | Gradation | **Normal**（非 Auto）| ✅ 色調曲線固定，不隨每張直方圖變動 |
 | Picture Mode | **i-Enhance** | ❌ **場景自適應**，見下 |
-| White Balance 2 | **Auto** | ❌ 通道增益逐張浮動，無法事後校正 |
+| White Balance 2 | **Auto** | ⚠️ R/B 增益逐張浮動，但 **G 是錨點不受影響**（見下）|
 | Noise Filter | Standard | ⚠️ 機身有做空間降噪，改變了逐像素統計 |
 
 > **i-Enhance 是目前最嚴重的問題。** Gradation 是 Normal 本來是好消息 —— 但 Picture Mode
@@ -71,8 +71,8 @@ Noise Filter         : Standard
 > 本來就不同（這正是要量的東西），因此兩組會被套上不同的增強曲線，而增強量與訊號強度
 > 相關。反 sRGB EOTF 無法還原它，因為那個轉換逐張不同且未被記錄。
 >
-> **白平衡 Auto 是同一類問題的第二個來源**：R/G/B 增益逐張由相機自行決定，G 通道的
-> 絕對值因此不可跨影像直接比較。
+> 白平衡 Auto 原本被列為同一類問題的第二個來源，但實測 `WB_RBLevels` 後降級了 ——
+> 增益只作用在 R/B、G 是錨點，詳見下節。i-Enhance 是唯一直接打在主指標上的自適應轉換。
 
 ### 整批 36 張的一致性（exiftool，`Alr analysis/`）
 
@@ -82,7 +82,7 @@ Noise Filter         : Standard
 | Picture Mode | 全部 `i-Enhance; 2` |
 | White Balance 2 | 全部 `Auto` |
 | Gradation | 全部 `Normal; User-Selected` |
-| WB RB Levels | **未記錄**（`-`）|
+| WB_RBLevels | 有記錄（`-T` 那次用錯欄位名）|
 
 設定本身跨整批是一致的 —— 混淆效應是齊一施加的，不是有些張有、有些張沒有。
 ISO 實測全批 1600，因此 L1 的 ISO 正規化對這批資料**恰好是 no-op**，
@@ -98,14 +98,34 @@ ISO 實測全批 1600，因此 L1 的 ISO 正規化對這批資料**恰好是 no
 > 要看未經轉換的原始值用 `exiftool -ExposureTime#`；`core.py` 走 Pillow，讀的一直是
 > 未捨入的真值。
 
-> **WB 增益漂移的幅度目前無法量化**：`WBRBLevels` 這批沒有記錄，所以 auto WB 實際
-> 造成多大影響還是未知數，只知道方向。有一個可能的減輕因素待驗證 —— 一般相機的
-> 白平衡是把增益施加在 R 與 B 上、以 G 為基準，若 Olympus 也是如此，主指標所在的
-> **G 通道受 auto WB 的影響會遠小於 R/B**。這尚未證實，不應據以放寬結論。
+### auto WB 對主指標的影響：已實測，比原先評估的輕
 
-**結論修正方向**：這兩項都無法事後校正，所以跨影像的絕對強度比較比原本認定的還要更弱。
-`cyto_mean` 的組間差異必須視為**半定量的方向性指標**，效應量區間應再放寬。原本的
-「沒有 secondary-only control 所以 offset 是自由參數」仍然成立，現在是三個限制疊加。
+`WBRBLevels` 在 `-T` 那次印成 `-` 是欄位名寫錯（正確是 `WB_RBLevels`），實際有記錄：
+
+```
+[Olympus]   WB_RBLevels  : 484 464 256 256
+[Composite] RedBalance   : 1.890625      (= 484/256)
+[Composite] BlueBalance  : 1.8125        (= 464/256)
+```
+
+**256 是 1.0 的基準，白平衡增益只作用在 R 與 B 上，G 是錨點、增益恆為 1.0。**
+（`RedBalance`/`BlueBalance` 正好等於 484/256 與 464/256，確認了這個換算。）
+
+意義：主指標 `cyto_mean` 量的是 **G 通道**，而 G 的增益不隨 auto WB 變動，所以
+**auto WB 對主要測量的直接影響是零**。受影響的是 DAPI（B）與 iNOS（R）——
+DAPI 只用來找細胞位置、不用來量強度，分割對整體增益變化本來就相對穩健。
+
+⚠️ 但**不是完全免疫**：白平衡之後還有一個 3×3 色彩矩陣把相機 RGB 轉成 sRGB，
+其非對角項讓輸出的 G 也含有少量 R/B 成分，因而間接受 R/B 增益影響。對綠色螢光
+這種窄頻訊號，R/B 通道本身訊號很弱，交叉項貢獻小，但不是嚴格為零。
+
+**結論**：auto WB 從「主要問題」降級為「次要殘差」。這不改變 i-Enhance 的問題 ——
+那個是作用在所有通道上的場景自適應轉換，仍然是最大的定量障礙。
+
+**結論修正方向**：淨結果是**一個**新的無法校正的限制，不是兩個 —— i-Enhance。
+auto WB 經實測不直接影響 G 通道，Gradation 是 Normal，Shading Compensation 是 Off。
+`cyto_mean` 的組間差異仍應視為**半定量的方向性指標**、效應量報區間，但主因是
+i-Enhance 加上原本就存在的「無 secondary-only control，offset 是自由參數」。
 
 ### 從檔案讀回拍攝設定 — `python -m ifquant.exif_report <資料夾>`
 
@@ -416,15 +436,30 @@ CLAUDE.md       給 Claude Code 的專案規則
 2. **一張 secondary-only 影像** → 把 T/C 從區間收斂成單一數字
 3. `EOC3/*/RoiSet.zip`（手動框的 ROI）→ 可以拿來量化自動分割 vs 人工標註的一致性（IoU / F1）
 
-### 給未來拍攝的建議
+### 拍攝 SOP（下次在機台前照這個做）
 
-如果還有機會重拍，這三件事會讓上面大半的救援工作變成不必要：
+相機設定全部改完後，用 `Reset/Myset` 存成一組 Myset，之後一鍵叫回，不用每次重設。
 
-- 相機切到 **M 模式**：固定曝光、**ISO 從 AUTO 改成固定值**
-- 白平衡從 **Auto 改成固定預設**（晴天或自訂色溫皆可，重點是固定）—— 否則 R/G/B
-  增益逐張浮動
-- Picture Mode 從 **i-Enhance 改成 Natural**（Gradation 維持 Normal）—— i-Enhance 是
-  場景自適應的，是目前最大的定量障礙
-- **Noise Filter 關閉** —— 空間降噪會改變逐像素統計
-- 存 **RAW（.ORF）** 而不是 JPEG —— 直接得到線性的 12-bit 資料，L1 整層可以省掉
-- 拍一張 **secondary-only** 與一張 **flat-field 參考**（均勻螢光片）
+| 項目 | 改成 | 位置 | 為什麼 |
+|---|---|---|---|
+| 模式轉盤 | **M** | 機身轉盤 | 曝光不再逐張跳動 |
+| ISO | **固定 1600** | ISO 鍵 / SCP，不要 AUTO | 增益不再是自由變數 |
+| 白平衡 | **固定預設或自訂 K** | SCP → WB，不要 AUTO | R/G/B 增益不再逐張浮動 |
+| Picture Mode | **Natural** | Shooting Menu 1 → Picture Mode | **最重要**：擺脫 i-Enhance 的場景自適應 |
+| Gradation | Normal | Picture Mode 子選單 | 目前已是 Normal，維持 |
+| Noise Filter | **Off** | Custom Menu → G（影像品質/WB/色彩）| 空間降噪會改變逐像素統計 |
+| 記錄格式 | **RAW（.ORF）** | SCP → 畫質 | 直接得到線性 12-bit，L1 整層可省掉 |
+
+> ⚠️ **新舊影像不要混在同一批分析。** 設定改過之後拍的影像，其 tone curve 與通道增益
+> 與現有這 36 張不同，混用會製造出比 i-Enhance 更糟的假差異。改設定後請當成新的一批，
+> 舊資料維持用現有 pipeline 處理。
+
+### 只有在機台前才能補的東西（依價值排序）
+
+1. **secondary-only 影像**（只加二抗、不加一抗，其餘條件完全相同）
+   → 這是唯一能把 L3 的加性 offset 從自由參數變成實測值的方法，也是目前把效應量
+   從區間收斂成單一數字的**唯一途徑**。價值遠高於其他任何一項。
+2. **flat-field 參考**（均勻螢光片或螢光染料薄層）
+   → 讓 L2 不必再假設「視野是隨機挑的、沒有位置偏誤」。
+3. **重拍樣本**（若切片還在且螢光未淬滅）
+   → 用上面的 SOP 重拍，本文件描述的大半救援工作就不再需要。

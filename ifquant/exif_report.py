@@ -32,6 +32,9 @@ MAKERNOTE_FIELDS = {
     "Gradation":            "Auto = per-image adaptive curve -> L1 error varies frame to frame",
     "ColorSpace":           "confirms the L1 inverse-EOTF choice",
     "WhiteBalance2":        "the real WB preset (standard EXIF flag is unreliable here)",
+    # Note the underscore: the tag is WB_RBLevels, not WBRBLevels. Querying the
+    # latter silently yields "-" and looks like the camera did not record it.
+    "WB_RBLevels":          "applied R/B gains against a fixed G reference of 256",
     "WhiteBalanceTemperature": "WB colour temperature",
     "Sharpness":            "spatial filtering alters per-pixel statistics",
     "Contrast":             "tone curve slope",
@@ -113,8 +116,11 @@ def _warn_adaptive(mn: pd.DataFrame):
         print("  the group comparison, not just added noise.")
 
     if any("auto" in w.lower() for w in vals("WhiteBalance2")):
-        print("\n  WARNING White balance is Auto: per-channel R/G/B gains were chosen per")
-        print("  frame, so absolute G values are not directly comparable across images.")
+        print("\n  NOTE White balance is Auto, but WB_RBLevels on this camera apply the")
+        print("  gains to R and B against a fixed G reference of 256, so the measured G")
+        print("  channel is not directly scaled -- DAPI (B) and iNOS (R) are. G is still")
+        print("  affected indirectly through the colour-matrix cross-terms, which are")
+        print("  small for a spectrally narrow green signal but not zero.")
 
     if any(s.lower() not in ("off", "0") for s in vals("ShadingCompensation")):
         print("\n  WARNING Shading Compensation is on: the camera already corrected")
